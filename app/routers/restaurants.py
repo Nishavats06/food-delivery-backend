@@ -4,6 +4,7 @@ from app.dependencies import get_db, get_current_user
 from app.models.restaurant import Restaurant
 from app.models.user import User, UserRole
 from app.schemas.restaurant import RestaurantCreate, RestaurantOut
+from app.services.geocoding import get_coordinates_from_address
 
 router = APIRouter(prefix="/restaurants", tags=["restaurants"])
 
@@ -27,7 +28,7 @@ def list_restaurants(
 
 
 @router.post("/", response_model=RestaurantOut)
-def create_restaurant(
+async def create_restaurant(
     restaurant: RestaurantCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -35,7 +36,17 @@ def create_restaurant(
     if current_user.role != UserRole.RESTAURANT_OWNER:
         raise HTTPException(status_code=403, detail="Only restaurant owners can create restaurants")
 
-    new_restaurant = Restaurant(**restaurant.model_dump(), owner_id=current_user.id)
+    geo_data = await get_coordinates_from_address(restaurant.address_line)
+
+    new_restaurant = Restaurant(
+        name=restaurant.name,
+        cuisine=restaurant.cuisine,
+        address_line=restaurant.address_line,
+        formatted_address=geo_data["formatted_address"] if geo_data else None,
+        latitude=geo_data["latitude"] if geo_data else None,
+        longitude=geo_data["longitude"] if geo_data else None,
+        owner_id=current_user.id
+    )
     db.add(new_restaurant)
     db.commit()
     db.refresh(new_restaurant)
@@ -51,7 +62,7 @@ def get_restaurant(id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{id}", response_model=RestaurantOut)
-def update_restaurant(
+async def update_restaurant(
     id: int,
     updated: RestaurantCreate,
     db: Session = Depends(get_db),
@@ -63,8 +74,15 @@ def update_restaurant(
     if restaurant.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="You don't own this restaurant")
 
-    for key, value in updated.model_dump().items():
-        setattr(restaurant, key, value)
+    geo_data = await get_coordinates_from_address(updated.address_line)
+
+    restaurant.name = updated.name
+    restaurant.cuisine = updated.cuisine
+    restaurant.address_line = updated.address_line
+    restaurant.formatted_address = geo_data["formatted_address"] if geo_data else None
+    restaurant.latitude = geo_data["latitude"] if geo_data else None
+    restaurant.longitude = geo_data["longitude"] if geo_data else None
+
     db.commit()
     db.refresh(restaurant)
     return restaurant

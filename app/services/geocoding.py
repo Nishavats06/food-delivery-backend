@@ -1,4 +1,3 @@
-
 import httpx
 
 async def get_coordinates_from_address(address: str):
@@ -21,28 +20,39 @@ async def get_coordinates_from_address(address: str):
     }
 
 
+async def search_locations(query: str):
+    url = "https://nominatim.openstreetmap.org/search"
+    params = {"q": query, "format": "json", "limit": 5}
+    headers = {"User-Agent": "food-delivery-app"}
 
-# import httpx
-# from app.config import settings
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, params=params, headers=headers)
+        data = response.json()
 
-# async def get_coordinates_from_address(address: str):
-#     url = "https://maps.googleapis.com/maps/api/geocode/json"
-#     params = {"address": address, "key": settings.GOOGLE_MAPS_API_KEY}
+    return [
+        {
+            "formatted_address": item["display_name"],
+            "latitude": float(item["lat"]),
+            "longitude": float(item["lon"])
+        }
+        for item in data
+    ]
 
-#     async with httpx.AsyncClient() as client:
-#         response = await client.get(url, params=params)
-#         data = response.json()
 
-#     print("GOOGLE API RESPONSE:", data)  # DEBUG LINE - temporary
+async def reverse_geocode(latitude: float, longitude: float):
+    url = "https://nominatim.openstreetmap.org/reverse"
+    params = {"lat": latitude, "lon": longitude, "format": "json"}
+    headers = {"User-Agent": "food-delivery-app"}
 
-#     if data["status"] != "OK":
-#         return None
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, params=params, headers=headers)
+        data = response.json()
 
-#     result = data["results"][0]
-#     location = result["geometry"]["location"]
+    if "error" in data:
+        return None
 
-#     return {
-#         "formatted_address": result["formatted_address"],
-#         "latitude": location["lat"],
-#         "longitude": location["lng"]
-#     }
+    return {
+        "formatted_address": data["display_name"],
+        "latitude": float(data["lat"]),
+        "longitude": float(data["lon"])
+    }

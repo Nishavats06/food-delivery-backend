@@ -1,9 +1,14 @@
 from pydantic import BaseModel, EmailStr, field_validator
+from app.models.user import UserRole
 
 class UserCreate(BaseModel):
-    name: str
+    first_name: str
+    last_name: str
     email: EmailStr
     password: str
+    phone_number: str | None = None
+    profile_picture_url: str | None = None
+    role: UserRole = UserRole.CUSTOMER
 
     @field_validator("password")
     @classmethod
@@ -18,8 +23,11 @@ class UserLogin(BaseModel):
 
 class UserOut(BaseModel):
     id: int
-    name: str
+    first_name: str
+    last_name: str
     email: EmailStr
+    phone_number: str | None
+    profile_picture_url: str | None
     role: str
 
     class Config:
@@ -28,27 +36,3 @@ class UserOut(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
-
-# from pydantic import BaseModel, EmailStr
-
-# class UserCreate(BaseModel):
-#     name: str
-#     email: EmailStr
-#     password: str
-
-# class UserLogin(BaseModel):
-#     email: EmailStr
-#     password: str
-
-# class UserOut(BaseModel):
-#     id: int
-#     name: str
-#     email: EmailStr
-#     role: str
-
-#     class Config:
-#         from_attributes = True
-
-# class Token(BaseModel):
-#     access_token: str
-#     token_type: str

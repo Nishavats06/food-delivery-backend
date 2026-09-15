@@ -8,7 +8,10 @@ class Restaurant(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     cuisine = Column(String)
-    address = Column(String)
+    address_line = Column(String)
+    formatted_address = Column(String, nullable=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
     owner_id = Column(Integer, ForeignKey("users.id"))
     rating = Column(Float, default=0.0)
 
